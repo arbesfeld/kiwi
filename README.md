@@ -1,4 +1,4 @@
-kiwi
+kiwi - www.arbesfeld.com/kiwi
 ====
 
 Procedural Model Generator Language
