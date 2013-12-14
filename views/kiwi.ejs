@@ -313,7 +313,7 @@
 <body>
 
 <div class="column1">
-  <div id="editor" style="height:94%; padding-bottom:-30px; padding:0; margin:0;">&lt;3 have fun!
+  <div id="editor" style="height:90%; padding-bottom:-30px; padding:0; margin:0;">&lt;3 have fun!
 
 function flower(radius, pegs)
   set m 2*PI/pegs
@@ -324,8 +324,10 @@ loop i 0 8
     rotate PI/2 0 0
       transform i 0 j 1.2 0.1 1.2
         flower((i+j+1)/10, i*j+8)</div>
+  <div id="wrapper" style="height:0%; overflow:auto"><div id="console"></div></div>
   <input id="submitbutton" type="submit" class="button" style="width:100%;" value="Compile"/>
-  <input id="exportbutton" type="submit" class="button" style="background:grey; width:100%;" value="Export"/>
+  <span><input id="exportbutton" type="submit" class="button" style="background:grey; float: left; width:50%;" value="Export"/>
+  <input id="helpbutton" type="submit" class="button" style="background:#094D80; width:50%;" value="Help"/></span>
 </div>
 <div class="column-divider">
   <script>
@@ -365,37 +367,47 @@ editor.getSession().setTabSize(2);
 
 var SCENE; // my custom scene object
 
+var log_console = function(msg) {
+    $('#console').append('<p>' + msg + '</p>');
+    $('#wrapper').height('30%');
+    $('#editor').height('60%');
+};
 // After scene load
 var loaded = function() {
   window.addEventListener('resize', SCENE.resizeCanvas);
   $('#submitbutton').click(function() {
-      document.getElementById('exportbutton').style.backgroundColor = '#A9014B';
       var user_text = editor.getValue() + "\n";
       $('#console').html('');
-      // try {
+      try {
         var parsed = PCG.parse(user_text);
-        // try {
+        try {
             SCENE.init();
             var result = evalStatements(parsed, defaultEnv());
-        // }
-      //   catch(e) {
-      //     var stack = e.stack.replace(/^[^\(]+?[\n$]/gm, '')
-      //       .replace(/^\s+at\s+/gm, '')
-      //       .replace(/^Object.<anonymous>\s*\(/gm, '{anonymous}()@')
-      //       .split('\n');
-      //       console.log(e + '\n' + 'Eval Error: ' + stack);
-      //   }
-      // }
-      // catch(e) {
-      //     var stack = e.stack.replace(/^[^\(]+?[\n$]/gm, '')
-      //       .replace(/^\s+at\s+/gm, '')
-      //       .replace(/^Object.<anonymous>\s*\(/gm, '{anonymous}()@')
-      //       .split('\n');
-      //     console.log(e + '\n' + 'Parse Error: ' + stack);
-      // }
+            document.getElementById('exportbutton').style.backgroundColor = '#094D80';
+        }
+        catch(e) {
+          var stack = e.stack.replace(/^[^\(]+?[\n$]/gm, '')
+            .replace(/^\s+at\s+/gm, '')
+            .replace(/^Object.<anonymous>\s*\(/gm, '{anonymous}()@')
+            .split('\n');
+            console.log(e + '\n' + 'Eval Error: ' + stack);
+            log_console(e + '\n' + 'Eval Error: ' + stack);
+        }
+      }
+      catch(e) {
+          var stack = e.stack.replace(/^[^\(]+?[\n$]/gm, '')
+            .replace(/^\s+at\s+/gm, '')
+            .replace(/^Object.<anonymous>\s*\(/gm, '{anonymous}()@')
+            .split('\n');
+          log_console(e + '\n' + 'Parse Error: ' + stack);
+      }
   });
   $('#exportbutton').click(function() {
     SCENE.export();
+  });
+  $('#helpbutton').click(function() {
+    newwindow=window.open('/kiwi/help','Help','height=600,width=850');
+    if (window.focus) {newwindow.focus()}
   });
 };
 

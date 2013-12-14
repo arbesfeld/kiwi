@@ -2,8 +2,11 @@
 module.exports = function (app) {
 
   app.get('/kiwi', function (req, res) {
-    console.log("Kiwi");
     res.render('kiwi');
+  });
+
+  app.get('/kiwi/help', function (req, res) {
+    res.render('kiwi-help');
   });
 
 }
