@@ -1,0 +1,1 @@
+pegjs -e PCG peg/kiwi.peg ./public/kiwi/js/main.js

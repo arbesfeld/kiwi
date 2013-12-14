@@ -1,0 +1,357 @@
+
+<3 weird shape thing
+set s .1
+set b 10
+
+function main()
+ loop i -b b
+  loop j -b b
+   loop k -b b
+    transform i*s*2 j*s*2 k*s*2 s*(i^2)/5 s s
+     set var sqrt(i*i + j*j + k*k)
+     if var < b
+      choose
+       option 1
+        sphere 10
+       option 10
+main()
+
+<3 a ship:
+
+function radius(y, t, p)
+  return abs(y-.5)^p
+
+function engine(size)
+  loop i 1 size
+    transform 0 0 0 1 sqrt(i) 1
+      lathe 20 20
+        return y*radius(y, t, (i*i)/10) + y*(1-y)
+
+function engines()
+  transform 0 0 0-1
+    transform -.5 0 0 .5 .5 .5 PI/2 0 0
+      engine(5)
+    transform .5 0 0 .5 .5 .5 PI/2 0 0
+      engine(5)
+
+function hull()
+  transform 0 0-.2 1 1 2 1 PI/2 3*PI/2 0
+    lathe 50 50
+      return (y^.1)/(1+abs(PI - t))
+
+function fins(count)
+  loop i 0 count-1
+    transform 0 0 i*.3-.5 .6/(i+1)^.2 .1 1/(i+1)^.3 PI/2 0 0
+      lathe 20 8
+        return 1
+
+engines()
+scale 2 2 2
+  hull()
+  displace
+    if abs(0.1-y%.2) < .05
+      set z z*0.6
+    if abs(y) < .1
+      if abs(1.5-z) < .5
+        set x x*.5
+fins(12)
+
+
+<3
+
+function crater(maxsize, maxdepth)
+  set r rand(1, 2)
+  set phi rand(0, PI)
+  set theta rand(0, 2*PI)
+  set sx r*cos(theta)*sin(phi)
+  set sy r*cos(phi)
+  set sz r*sin(theta)*sin(phi)
+  set thresh rand(0, sqrt(maxsize))^4
+  set depth rand(maxdepth, 1)
+  displace
+    set dist (x-sx)^2 + (y-sy)^2 + (z-sz)^2
+    if dist < thresh
+      set mult lerp(depth, 1, smoothstep(0, 1, dist/thresh)^20)
+      set x x*mult
+      set y y*mult
+      set z z*mult
+
+function asteroid(craters)
+  sphere 30
+  displacen 5 10
+  loop i 0 craters
+    crater(0.2)
+
+scale rand(0.8,1.2) rand(0.8,1.2) rand(0.8,1.2)
+  asteroid(30)
+
+<3
+
+function crater(minradius)
+  set r rand(1, 2)
+  set phi rand(0, PI)
+  set theta rand(0, 2*PI)
+  set sx r*cos(theta)*sin(phi)
+  set sy r*cos(phi)
+  set sz r*sin(theta)*sin(phi)
+  set thresh rand(minradius, 0.4)
+  displace
+    set dist (x-sx)^2 + (y-sy)^2 + (z-sz)^2
+    if dist < thresh
+      set mult 1+thresh-dist
+      set x x*mult
+      set y y*mult
+      set z z*mult
+
+function asteroid(craters)
+  sphere 100
+  displacen 10
+  loop i 0 craters
+    crater(0.2)
+
+asteroid(30)
+
+<3
+
+function geom()
+  cube 30
+
+function building(width, height, numWindow, stories)
+  geom()
+  set windowFrame rand(0.15, 0.2)
+  set windowWidth (1-(numWindow+1)*windowFrame)/numWindow/width
+  set windowHeight (1-(stories+1)*windowFrame)/stories/height
+  displace
+    if abs(x)-0.5 <= EPS
+      set tz z+0.5+(windowWidth+windowFrame)/2
+      set modz tz%(windowWidth+windowFrame)
+      set threshZMax windowWidth/2
+      set threshZMin threshZMax+windowFrame
+      if (modz <= threshZMax or modz >= threshZMin) and abs(z) < 0.5 - windowFrame/2
+          set x 0.6*x
+
+set width rand(.4, .8)
+set length rand(width-.2, width+.2)
+set height rand(width+length, 3*(width+length))
+set numWindow randi(1, 2)
+set stories randi(8, 12)
+scale width height length
+  building(width, height, numWindow, stories)
+
+<3
+
+sphere 600
+loop i 0 400
+  set x rand(-0.5, 0.5)
+  set z rand(-0.5, 0.5)
+  scale .005 0.5 .005
+    attach x 0 z x 10 z
+      lathe 5 20
+        return 1
+      set r rand(1,2)
+      set phase rand(0,2*PI)
+      displace
+       set x 20*sin(r*PI*y+phase)
+
+<3 stack
+
+function round()
+  displace
+    set oldZ z
+    if abs(x) < 0.2
+     set z 0.8*z
+    if abs(oldZ) < 0.2
+     set x 0.8*x
+function stackCubes(num)
+  if num >= 0
+   set width rand(0.5, 1.5)
+   set length rand(0.5, 1.5)
+   set height rand(0.2, 2)
+   attach 0 0 0 0 10 0
+    scale width height length
+      cube 20
+      round()
+      stackCubes(num-1)
+
+function createStack()
+  cube 20
+  round()
+  stackCubes(randi(2, 5))
+
+loop i 0 3
+  translate rand(-4, 4) rand(-1, 1) rand(-4, 4)
+    loop i 0 6
+      translate rand(-2, 2) rand(-0.5, 0.5) rand(-2, 2)
+        createStack()
+
+
+<3 final
+
+
+function flatHull()
+  scale rand(0.9, 1.1) rand(0.1, 0.2) rand(3, 5)
+    cube 20
+    displace
+      if abs(x) < 0.02
+        set y (1-abs(x))*0.4*y
+      if abs(x) >= 0.02
+        set y y-abs(x)
+      choose
+        option 1
+        option 1
+      set y y*(1.5-z)
+
+function curve()
+  set r rand(0.3, 0.4)
+  displace
+    if y > -0.3
+      set x (1.2-(y+r)*(y+r))*x
+    set y y*(0.4+2*sqrt(z+0.5))
+
+scale rand(0.4, 0.7) rand(0.3, 0.5) rand(3, 5)
+  cube 40
+  curve()
+
+
+
+function flower(radius, pegs)
+  set m 2*PI/pegs
+  lathe 60 2
+    return (t%m)*radius
+loop i 0 8
+  loop j 0 8
+    rotate PI/2 0 0
+      transform i 0 j 1.2 0.1 1.2
+        flower((i+j+1)/10, i*j+8)
+
+
+function stack(height, x, y)
+  loop i 0 height
+    scale 0.16 1 0.3
+      rotate 0 (i%2)*PI/2 PI/2
+        loop j -1 2
+          set r1 rand(-0.06, 0.06)
+          set r2 rand(-0.06, 0.06)
+          translate x+r1+(i%2)*j/3 i/6 y+r2+((i+1)%2)*j/3
+            choose
+              option 30
+                cube 1
+              option 10
+
+loop i 0 5
+  loop j 0 5
+    transform i 0 j
+      stack(randi(3, 30). 2*i, 2*j)
+
+function flower(radius, pegs)
+  set m 2*PI/pegs
+  lathe 90 2
+    return (t%m)*radius+0.3
+
+function star(height)
+  transform 0 height 0-.5 1 1.2 1 PI/2 0 0
+    flower(rand(3, 6), randi(10, 20))
+
+function ornament(r, h)
+  set theta rand(0, 2*PI)
+  set x r*cos(theta)
+  set z r*sin(theta)
+  transform x h z 1 1 1
+    sphere 10
+
+function treeRing(r, height, thickness)
+  transform 0 i 0 1 thickness 1
+    lathe 30 2
+        return r
+  loop j 0 5
+    choose
+      option 4
+      option 1
+        set s rand(0.8, 1.2)
+        scale s s s
+          ornament(r, height)
+
+function tree()
+  set height randi(30, 40)
+  set bottom randi(3, 7)
+  set tamper rand(1, 2)
+  set rootLength rand(0.3, 0.4)
+  scale 0.5 bottom 0.5
+    set freq rand(3, 5)
+    set phase rand(0.1, 0.2)
+    lathe 60 20
+      set pY y+rootLength
+      set tFactor abs(sin(t*freq+phase)) + 0.5
+      return tFactor*(1.1 - y + tamper/(pY*pY))
+
+  set thickness rand(0.2, 1.4)
+  choose
+    option 1
+      loop i bottom height
+        treeRing((height - i*i/height)*0.3, i, thickness)
+    option 1
+      loop i bottom height
+        treeRing((height-i)*0.5, i, thickness)
+
+  star(height)
+
+tree()
+
+<3
+
+seed Hanukkah
+
+function flower(radius, pegs)
+  set m 2*PI/pegs
+  lathe 90 2
+    return (t%m)*radius+0.3
+
+function star(height)
+  transform 0 height 0-.5 1 1.2 1 PI/2 0 0
+    flower(rand(3, 6), randi(10, 20))
+
+function ornament(r, h)
+  set theta rand(0, 2*PI)
+  set x (r+0.05)*cos(theta)
+  set z (r+0.05)*sin(theta)
+  transform x h z 1 1 1
+    sphere 10
+
+function treeRing(r, height, thickness)
+  transform 0 i 0 1 thickness 1
+    lathe 30 2
+        return r
+  loop j 0 5
+    choose
+      option 4
+      option 1
+        set s rand(0.8, 1.2)
+        scale s s s
+          ornament(r, height)
+
+function tree()
+  set height randi(30, 40)
+  set bottom randi(3, 7)
+  set tamper rand(1, 2)
+  set rootLength rand(0.3, 0.4)
+  scale 0.5 bottom 0.5
+    set freq rand(3, 5)
+    set phase rand(0.1, 0.2)
+    lathe 60 20
+      set pY y+rootLength
+      set tFactor abs(sin(t*freq+phase)) + 0.5
+      return tFactor*(1.1 - y + tamper/(pY*pY))
+
+  set thickness rand(0.2, 1.4)
+  choose
+    option 1
+      loop i bottom height
+        treeRing((height-i)*0.5, i, thickness)
+    option 1
+      loop i bottom height
+        treeRing((height - i*i/height)*0.3, i, thickness)
+
+
+  star(height)
+
+tree()

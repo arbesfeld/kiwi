@@ -1,0 +1,245 @@
+{ var indentStack = [], indent = ""; }
+
+start
+  = blank* INDENT? lines:( blank / line )*
+    { return lines; }
+
+EOL
+  = "\r\n" / "\n" / "\r"
+WS = " "*
+
+/**
+ *  #indentation
+ *  Handle indentation levels.
+ */
+
+line
+  = SAMEDENT statement:statement WS EOL
+    children:( b:blank* INDENT c:( blank / line )* DEDENT { return b.concat(c); })?
+    { return {statement:statement, children: children === "" ? [] : children}; }
+
+blank
+  = [ \t]* EOL
+    { return undefined; }
+
+SAMEDENT
+  = i:[ \t]* &{ return i.join("") === indent; }
+
+INDENT
+  = i:[ \t]+ &{ return i.length > indent.length; }
+    { indentStack.push(indent); indent = i.join(""); pos = offset; }
+
+DEDENT
+  = { indent = indentStack.pop(); }
+
+/**
+ *  #statements
+ *  functions, etc
+ */
+
+statement
+    =
+    // assignment
+      v:identifier WS "=" WS expr:expression
+        { return { tag:"=", left:v, right:expr }; }
+
+    // lathe
+    / "lathe " WS tStep:expression WS yStep:expression
+        { return { tag:"lathe", tStep:tStep, yStep:yStep }; }
+    // choice
+    // choose between blocks with probabilities determined
+    // by the "option" blocks)
+    / "choose"
+        { return { tag:"choose"}; }
+
+    // option
+    // a choice block
+    / "option " WS expr:expression
+        { return { tag:"option", expr:expr}; }
+
+    // seed
+    // set a specific seed
+    / "seed " WS v:identifier
+        { return { tag:"seed", v:v}; }
+
+    // initializion
+    / "set " WS v:identifier WS expr:expression
+        { return { tag:"set", left:v, right:expr }; }
+
+    // comments
+    / "<3" [^\n]* { return undefined; }
+
+    // function()
+    / "function " WS v:identifier "(" WS ")"
+        { return { tag:"function", name:v, args:[]}; }
+
+    // function(args)
+    / "function " WS v:identifier WS "(" WS args:ident_list WS ")"
+        { return { tag:"function", name:v, args:args }; }
+
+    // if
+    / "if " WS expr:expression
+        { return { tag:"if", expr:expr}; }
+
+    // loop
+    / "loop " WS v:identifier WS start:expression WS end:expression
+        { return { tag:"loop", v:v, start:start, end:end}; }
+
+    // repeat
+    / "repeat " WS expr:expression
+        { return { tag:"repeat", expr:expr}; }
+
+    // return
+    / "return " WS expr:expression
+        { return { tag:"return", body:expr}; }
+
+    // transform
+    / "transform " exprs:(WS expr:expression { return expr; } )+
+        { return { tag:"transform", exprs:exprs}; }
+
+    // translate
+    / "translate " WS x:expression WS y:expression WS z:expression
+        { return { tag:"translate", xExpr:x, yExpr:y, zExpr:z }; }
+
+    // scale
+    / "scale " WS x:expression WS y:expression WS z:expression
+        { return { tag:"scale", xExpr:x, yExpr:y, zExpr:z }; }
+
+    // rotate
+    / "rotate " WS x:expression WS y:expression WS z:expression
+        { return { tag:"rotate", xExpr:x, yExpr:y, zExpr:z }; }
+
+    // sphere q
+    / "sphere " WS q:expression
+        { return { tag:"sphere", q:q }; }
+
+    // cube q
+    / "cube " WS q:expression
+        { return { tag:"cube", q:q }; }
+
+    // plane q
+    / "plane " WS q:expression
+        { return { tag:"plane", q:q }; }
+
+    // random noise for the block
+    / "displacen " WS noise:expression
+        { return { tag:"displacen", noise:noise}; }
+
+    // a displace block remaps the x,y,z variables
+    / "displacev"
+        { return { tag:"displacev" }; }
+
+    // a displace block remaps the x,y,z variables
+    / "displace"
+        { return { tag:"displace" }; }
+
+    // attach to a vertex that is in x = [xMin, xMax] etc
+    / "attach " WS xMin:expression WS yMin:expression WS zMin:expression
+                WS xMax:expression WS yMax:expression WS zMax:expression
+        { return { tag:"attach", xMin:xMin, yMin:yMin, zMin:zMin, xMax:xMax, yMax:yMax, zMax:zMax }; }
+
+    // generic expression
+    / expr:expression
+        { return { tag:"ignore", body:expr }; }
+
+comma_identifier = "," WS v:identifier
+        { return v; }
+
+ident_list
+    = first:identifier rest:comma_identifier*
+        { return [first].concat(rest); }
+/**
+ *  #expressions
+ *  Expresions and comparisons.
+ */
+
+expression
+    = expr:composite
+        { return expr; }
+
+COMPOSITE_OP = "and" / "or"
+
+composite
+    = left:comparative WS op:COMPOSITE_OP WS right:composite
+        { return { tag: op, left:left, right:right }; }
+    / comparative
+
+COMP_OP = "<=" / ">=" / "!=" / "==" / "<" / ">"
+
+comparative
+    = left:modulo WS op:COMP_OP WS right:comparative
+        { return { tag: op, left:left, right:right }; }
+    / modulo
+
+modulo
+    = left:additive WS "%" WS right:modulo
+        { return {tag:"%", left:left, right:right}; }
+    / additive
+
+ADDITIVE_OP = "+" / "-"
+
+additive
+    = left:multiplicative WS op:ADDITIVE_OP WS right:additive
+        { return { tag:op, left:left, right:right }; }
+    / multiplicative
+
+MULT_OP = "*" / "/"
+
+multiplicative
+    = left:power WS op:MULT_OP WS right:multiplicative
+        { return { tag:op, left:left, right:right }; }
+    / power
+
+power
+    = left:primary WS "^" WS right:power
+        { return {tag:"^", left:left, right:right}; }
+    / primary
+
+// encodes function calls
+primary
+    = number
+    / v:identifier "(" WS ")"
+        { return { tag:"call", name:v, args:[] }; }
+    / v:identifier "(" WS args:arglist WS ")"
+        { return { tag:"call", name:v, args:args }; }
+    / v:identifier { return { tag:"ident", name:v }; }
+    / "(" WS expr:expression WS ")"
+        { return expr; }
+
+comma_expression = WS "," WS expr:expression
+        { return expr; }
+
+arglist
+    = first:expression rest:comma_expression*
+        { return [first].concat(rest); }
+
+/**
+ *  #identifiers
+ *  Grammar for variables names / function names
+ *  and other string identifiers.
+ */
+
+VALID_FIRST_CHAR
+    = [a-zA-Z_]
+
+VALID_CHAR
+    = [0-9a-zA-Z_]
+
+identifier
+    = neg:"-"? firstchar:VALID_FIRST_CHAR chars:VALID_CHAR*
+        { return {neg:neg ? true : false, name:firstchar + chars.join('')}; }
+
+/*
+ * #numbers
+ * Grammar for float numbers such as
+ * 0.04, 10, -5.32
+ */
+
+number_frac
+    = "." chars:[0-9]*
+        { return "." + chars.join(''); }
+
+number
+     = neg:"-"? num:(chars:[0-9]+ frac:number_frac? { return chars.join('') + frac; }
+                 /   chars:[0-9]* frac:number_frac  { return chars.join('') + frac; })
+        { return parseFloat(neg + num); }

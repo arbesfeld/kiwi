@@ -1,0 +1,416 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Kiwi</title>
+
+    <style type="text/css">
+      body {
+        position: relative;
+        margin: 0px;
+        padding: 0px;
+        height: 100%;
+        background-color: #AAA;
+      }
+      div.column1 {
+        position: absolute; /* Pulls it out of the normal flow */
+        left: 0px;          /* Places it on the top-left       */
+        top: 0px;
+        width: 397px;       /* Width is exactly 300px          */
+        height: 100%;
+        overflow-y: auto;
+      }
+      div.column-divider {
+        position: absolute;
+        background-color: #AAA;
+        height: 100%;
+        top: 0px;
+        left: 397px;
+        width: 3px;
+        cursor: col-resize;
+      }
+      div.column2 {
+        position: relative; /* Leave in normal flow so the     */
+                            /* width can be full width         */
+        right: 0px;         /* Places it on the top-right      */
+                            /* (leaving left also works)       */
+        top: 0px;
+        height: 100%;
+        margin-left: 400px; /* Left margin pushes over for the */
+                            /* other columns to have space     */
+        overflow-y: auto;
+      }
+      .button {
+        font: bold 13px "Helvetica Neue", Helvetica, Arial, clean, sans-serif !important;
+        text-shadow: 0 -1px 1px rgba(0,0,0,0.25), -2px 0 1px rgba(0,0,0,0.25);
+        border-radius: 5px;
+        -moz-border-radius: 5px;
+        -webkit-border-radius: 5px;
+        -moz-box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        -webkit-box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        display: inline-block;
+        color: white;
+        padding: 5px 10px 5px;
+        white-space: nowrap;
+        text-decoration: none;
+        cursor: pointer;
+        background: #A9014B scroll 0 0;
+        border-style: none;
+        text-align: center;
+        overflow: visible;
+      }
+
+      .button:hover,
+      .button:focus {
+        background-position: 0 -50px;
+        color: white;
+      }
+
+      .button:active {
+        background-position: 0 -100px;
+        -moz-box-shadow: inset 0 1px 2px rgba(0,0,0,0.7);
+        -webkit-box-shadow: none;
+      }
+    </style>
+
+  <!-- js -->
+  <script src="public/js/jquery-2.0.3.min.js"></script>
+  <script src="kiwi/js/three.js"></script>
+  <script src="kiwi/js/seedrandom.js"></script>
+  <script src="kiwi/js/OrbitControls.js"></script>
+  <script src="kiwi/js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+  <script src="kiwi/js/jszip.js"></script>
+  <script src="kiwi/js/FileSaver.js"></script>
+  <script src="kiwi/js/main.js"></script>
+  <script src="kiwi/js/parser.js"></script>
+  <script src="kiwi/js/compiler.js"></script>
+  <script src="kiwi/js/default-env.js"></script>
+  <script src="kiwi/js/Scene.js"></script>
+  <script src="kiwi/js/ShaderLib.js"></script>
+  <script src="kiwi/js/CustomLatheGeometry.js"></script>
+  <script src="kiwi/js/three-additions.js"></script>
+  <script src="kiwi/js/jquery-ui-1.10.3.custom.min.js"></script>
+
+    <script type="x-shader/x-fragment" id="vertexShaderStart">
+
+    varying vec3 vViewPosition;
+    varying vec3 objectNormal;
+
+    #define LAMBERT
+
+    #if defined ( USE_NOISE )
+          vec3 mod289(vec3 x)
+      {
+        return x - floor(x * (1.0 / 289.0)) * 289.0;
+      }
+
+      vec4 mod289(vec4 x)
+      {
+        return x - floor(x * (1.0 / 289.0)) * 289.0;
+      }
+
+      vec4 permute(vec4 x)
+      {
+        return mod289(((x*34.0)+1.0)*x);
+      }
+
+      vec4 taylorInvSqrt(vec4 r)
+      {
+        return 1.79284291400159 - 0.85373472095314 * r;
+      }
+
+      vec3 fade(vec3 t) {
+        return t*t*t*(t*(t*6.0-15.0)+10.0);
+      }
+
+      // Classic Perlin noise
+      float cnoise(vec3 P)
+      {
+        vec3 Pi0 = floor(P); // Integer part for indexing
+        vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1
+        Pi0 = mod289(Pi0);
+        Pi1 = mod289(Pi1);
+        vec3 Pf0 = fract(P); // Fractional part for interpolation
+        vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+        vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+        vec4 iy = vec4(Pi0.yy, Pi1.yy);
+        vec4 iz0 = Pi0.zzzz;
+        vec4 iz1 = Pi1.zzzz;
+
+        vec4 ixy = permute(permute(ix) + iy);
+        vec4 ixy0 = permute(ixy + iz0);
+        vec4 ixy1 = permute(ixy + iz1);
+
+        vec4 gx0 = ixy0 * (1.0 / 7.0);
+        vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+        gx0 = fract(gx0);
+        vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+        vec4 sz0 = step(gz0, vec4(0.0));
+        gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+        gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+        vec4 gx1 = ixy1 * (1.0 / 7.0);
+        vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+        gx1 = fract(gx1);
+        vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+        vec4 sz1 = step(gz1, vec4(0.0));
+        gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+        gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+        vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+        vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+        vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+        vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+        vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+        vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+        vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+        vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+
+        vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+        g000 *= norm0.x;
+        g010 *= norm0.y;
+        g100 *= norm0.z;
+        g110 *= norm0.w;
+        vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+        g001 *= norm1.x;
+        g011 *= norm1.y;
+        g101 *= norm1.z;
+        g111 *= norm1.w;
+
+        float n000 = dot(g000, Pf0);
+        float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+        float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+        float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+        float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+        float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+        float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+        float n111 = dot(g111, Pf1);
+
+        vec3 fade_xyz = fade(Pf0);
+        vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+        vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+        float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x);
+        return 2.2 * n_xyz;
+      }
+
+      // Classic Perlin noise, periodic variant
+      float pnoise(vec3 P, vec3 rep)
+      {
+        vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period
+        vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period
+        Pi0 = mod289(Pi0);
+        Pi1 = mod289(Pi1);
+        vec3 Pf0 = fract(P); // Fractional part for interpolation
+        vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+        vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+        vec4 iy = vec4(Pi0.yy, Pi1.yy);
+        vec4 iz0 = Pi0.zzzz;
+        vec4 iz1 = Pi1.zzzz;
+
+        vec4 ixy = permute(permute(ix) + iy);
+        vec4 ixy0 = permute(ixy + iz0);
+        vec4 ixy1 = permute(ixy + iz1);
+
+        vec4 gx0 = ixy0 * (1.0 / 7.0);
+        vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+        gx0 = fract(gx0);
+        vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+        vec4 sz0 = step(gz0, vec4(0.0));
+        gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+        gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+        vec4 gx1 = ixy1 * (1.0 / 7.0);
+        vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+        gx1 = fract(gx1);
+        vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+        vec4 sz1 = step(gz1, vec4(0.0));
+        gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+        gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+        vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+        vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+        vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+        vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+        vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+        vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+        vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+        vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+
+        vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+        g000 *= norm0.x;
+        g010 *= norm0.y;
+        g100 *= norm0.z;
+        g110 *= norm0.w;
+        vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+        g001 *= norm1.x;
+        g011 *= norm1.y;
+        g101 *= norm1.z;
+        g111 *= norm1.w;
+
+        float n000 = dot(g000, Pf0);
+        float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+        float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+        float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+        float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+        float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+        float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+        float n111 = dot(g111, Pf1);
+
+        vec3 fade_xyz = fade(Pf0);
+        vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+        vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+        float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x);
+        return 2.2 * n_xyz;
+      }
+
+      varying float noise;
+      uniform float noiseFactor;
+
+      float turbulence( vec3 p ) {
+          float w = 100.0;
+          float t = -.5;
+          for (float f = 1.0 ; f <= 10.0 ; f++ ){
+              float power = pow( 2.0, f );
+              t += abs( pnoise( vec3( power * p ), vec3( 10.0, 10.0, 10.0 ) ) / power );
+          }
+          return t;
+      }
+    #endif
+
+    #if defined (USE_NOISE) || defined( USE_MAP ) || defined( USE_BUMPMAP ) || defined( USE_NORMALMAP ) || defined( USE_SPECULARMAP )
+      varying vec2 vUv;
+      uniform vec4 offsetRepeat;
+    #endif
+
+    #if defined( USE_ENVMAP ) && ! defined( USE_BUMPMAP ) && ! defined( USE_NORMALMAP )
+      varying vec3 vReflect;
+      uniform float refractionRatio;
+      uniform bool useRefract;
+    #endif
+
+    void main() {
+
+  </script>
+  <script type="x-shader/x-fragment" id="vertexShaderEnd">
+    #if defined (USE_NOISE)
+      noise = noiseFactor *  -.10 * turbulence( .5 * normal );
+      float b = 10. * pnoise( 0.05 * displacedPosition, vec3( 100.0 ) );
+      float displacement = - 10. * noise + b;
+      displacedPosition = displacedPosition + normal * displacement / 20.;
+    #endif
+
+    #if defined( USE_MAP ) || defined( USE_BUMPMAP ) || defined( USE_NORMALMAP ) || defined( USE_SPECULARMAP )
+      vUv = uv * offsetRepeat.zw + offsetRepeat.xy;
+    #endif
+    objectNormal = normal;
+    vec4 mvPosition = modelViewMatrix * vec4( displacedPosition, 1.0 );
+    vViewPosition = -mvPosition.xyz;
+    gl_Position = projectionMatrix * mvPosition;
+
+  }
+
+</script>
+</head>
+<body>
+
+<div class="column1">
+  <div id="editor" style="height:94%; padding-bottom:-30px; padding:0; margin:0;">&lt;3 have fun!
+
+function flower(radius, pegs)
+  set m 2*PI/pegs
+  lathe 60 2
+    return (t%m)*radius
+loop i 0 8
+  loop j 0 8
+    rotate PI/2 0 0
+      transform i 0 j 1.2 0.1 1.2
+        flower((i+j+1)/10, i*j+8)</div>
+  <input id="submitbutton" type="submit" class="button" style="width:100%;" value="Compile"/>
+  <input id="exportbutton" type="submit" class="button" style="background:grey; width:100%;" value="Export"/>
+</div>
+<div class="column-divider">
+  <script>
+    $(document).ready(function() {
+      $("div.column-divider").draggable({
+        axis: 'x', // only allow horizontal movement
+        drag: function(event, ui) {
+          // adjust column1 as they drag
+          $('div.column1').width($(this).offset().left);
+          $('div.column2').css('margin-left',
+              $(this).offset().left + $(this).width());
+          if (SCENE && SCENE.renderer) {
+            SCENE.resizeCanvas();
+          }
+        },
+        stop: function(event, ui) {
+          // one more time to ensure it's right when they stop
+          $('div.column1').width($(this).offset().left);
+          $('div.column2').css('margin-left',
+              $(this).offset().left + $(this).width());
+        }
+      });
+    });
+  </script>
+</div>
+<div class="column2">
+  <div id="canvas" style="height:100%; background-color:#eee"></div>
+</div>
+
+<script>
+
+var editor = ace.edit("editor");
+editor.setTheme("ace/theme/monokai");
+editor.getSession().setMode("ace/mode/python");
+editor.session.setUseWorker(false)
+editor.getSession().setTabSize(2);
+
+var SCENE; // my custom scene object
+
+// After scene load
+var loaded = function() {
+  window.addEventListener('resize', SCENE.resizeCanvas);
+  $('#submitbutton').click(function() {
+      document.getElementById('exportbutton').style.backgroundColor = '#A9014B';
+      var user_text = editor.getValue() + "\n";
+      $('#console').html('');
+      // try {
+        var parsed = PCG.parse(user_text);
+        // try {
+            SCENE.init();
+            var result = evalStatements(parsed, defaultEnv());
+        // }
+      //   catch(e) {
+      //     var stack = e.stack.replace(/^[^\(]+?[\n$]/gm, '')
+      //       .replace(/^\s+at\s+/gm, '')
+      //       .replace(/^Object.<anonymous>\s*\(/gm, '{anonymous}()@')
+      //       .split('\n');
+      //       console.log(e + '\n' + 'Eval Error: ' + stack);
+      //   }
+      // }
+      // catch(e) {
+      //     var stack = e.stack.replace(/^[^\(]+?[\n$]/gm, '')
+      //       .replace(/^\s+at\s+/gm, '')
+      //       .replace(/^Object.<anonymous>\s*\(/gm, '{anonymous}()@')
+      //       .split('\n');
+      //     console.log(e + '\n' + 'Parse Error: ' + stack);
+      // }
+  });
+  $('#exportbutton').click(function() {
+    SCENE.export();
+  });
+};
+
+SCENE = new Scene(loaded);
+</script>
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-27801400-2', 'arbesfeld.com');
+  ga('send', 'pageview');
+</script>
+
+</body>
+</html>
