@@ -89,9 +89,9 @@ function Scene(callback) {
         };
     }
 
-    loadFile("kiwi/shaders/fs-default.txt", shaderLoaded(this.fsDefault).bind(this), false);
+    loadFile("shaders/fs-default.txt", shaderLoaded(this.fsDefault).bind(this), false);
 
-    this.fireTexture = new THREE.ImageUtils.loadTexture( 'kiwi/images/explosion.png' );
+    this.fireTexture = new THREE.ImageUtils.loadTexture( 'images/explosion.png' );
 }
 
 Scene.prototype.init = function() {
