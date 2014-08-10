@@ -73,7 +73,7 @@
     </style>
 
   <!-- js -->
-  <script src="public/js/jquery-2.0.3.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
   <script src="js/three.js"></script>
   <script src="js/seedrandom.js"></script>
   <script src="js/OrbitControls.js"></script>
@@ -406,7 +406,7 @@ var loaded = function() {
     SCENE.export();
   });
   $('#helpbutton').click(function() {
-    newwindow=window.open('/kiwi/help','Help','height=600,width=850');
+    newwindow=window.open('/kiwi-help.html','Help','height=600,width=850');
     if (window.focus) {newwindow.focus()}
   });
 };
